@@ -3,14 +3,14 @@
 #include<linux/fs.h>
 #include<linux/ioctl.h>
 #include<linux/device.h>
-
+#include<linux/slab.h>
 #define DEV_NAME "topsec"
 
 #define TOPSECIO 0XEC
 
 #define TOPSEC_GET_VERSION _IO(TOPSECIO,0X1)
-
-
+#define TOPSEC_UAF _IO(TOPSECIO,0X2)
+#define TOPSEC_OUT_OF_BOUND _IO(TOPSECIO,0X3)
 
 #define CURRENT_VERSION 1
 
@@ -24,6 +24,9 @@ static int test_dev_open(struct inode* inodep,struct file * filep)
 }
 static long test_dev_ioctl (struct file* filep,unsigned int cmd ,unsigned long arg)
 {
+	char *p=NULL;
+	int  *buffer=NULL;
+	int *a;
 	printk("[*]ioctl\n");
 	if(_IOC_TYPE(cmd)!=TOPSECIO)
 	{
@@ -33,6 +36,20 @@ static long test_dev_ioctl (struct file* filep,unsigned int cmd ,unsigned long a
 		case TOPSEC_GET_VERSION:
 			printk("[*]get current version\n");
 			return CURRENT_VERSION;
+			break;
+		case TOPSEC_UAF:
+			p=kzalloc(8,GFP_KERNEL);
+			if(p==NULL)
+			{
+				printk("[*]alloc error\n");
+			}
+			kfree(p);
+			*p=1;
+			break;
+		case TOPSEC_OUT_OF_BOUND:
+			buffer=kzalloc(256,GFP_KERNEL);
+			a=buffer[arg];
+			kfree(buffer);
 
 	}
 
